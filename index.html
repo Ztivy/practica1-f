@@ -3,368 +3,624 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Ventas AWS</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+    <title>Análisis de Ventas - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
-        /* --- Reset básico --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #2563eb;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --border: #e5e7eb;
+        }
+        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
-            background: #e9ecef;
-            font-family: Arial, Helvetica, sans-serif;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(to bottom right, #f0f9ff, #e0e7ff);
+            min-height: 100vh;
+            padding: 1.5rem;
         }
-
-        .wrapper {
+        
+        .main-container {
             max-width: 1400px;
-            margin: auto;
+            margin: 0 auto;
         }
-
-        header {
-            text-align: center;
-            margin-bottom: 25px;
+        
+        .header {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
         }
-
-        header h1 {
-            font-size: 2.3rem;
-            font-weight: bold;
-            color: #303030;
+        
+        .header h1 {
+            color: var(--dark);
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
         }
-
-        header p {
-            color: #555;
-            margin-top: 5px;
+        
+        .header p {
+            color: #6b7280;
+            font-size: 0.95rem;
         }
-
-        .grid {
+        
+        .cards-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
         }
-
-        .panel {
-            background: #fff;
-            border: 1px solid #d3d3d3;
-            border-radius: 6px;
-            padding: 18px;
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-
-        .panel h2 {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
-            color: #333;
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-right: 0.75rem;
+        }
+        
+        .icon-blue { background: #dbeafe; }
+        .icon-green { background: #d1fae5; }
+        .icon-orange { background: #fed7aa; }
+        .icon-purple { background: #e9d5ff; }
+        
+        .card-title {
+            color: var(--dark);
+            font-size: 0.95rem;
             font-weight: 600;
         }
-
-        canvas {
-            width: 100% !important;
-            max-height: 360px;
+        
+        .chart-wrapper {
+            position: relative;
+            height: 280px;
         }
-
-        .loading-box {
-            text-align: center;
-            margin: 80px 0;
-            color: #444;
+        
+        .full-width {
+            grid-column: 1 / -1;
         }
-
-        .spinner {
-            border: 4px solid #ccc;
-            border-top: 4px solid #444;
+        
+        .full-width .chart-wrapper {
+            height: 350px;
+        }
+        
+        .region-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 8px;
+        }
+        
+        .region-controls label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .region-controls select {
+            flex: 1;
+            max-width: 250px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .region-controls select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
             border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            margin: auto;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
         }
-
+        
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-
-        .error-box {
-            background: #ffdddd;
-            border-left: 5px solid #cc0000;
-            padding: 15px;
-            margin-bottom: 30px;
-            border-radius: 4px;
-            color: #700;
+        
+        .loading-text {
+            margin-top: 1rem;
+            color: var(--dark);
+            font-weight: 500;
         }
-
-        .selector {
-            background: #f1f1f1;
-            padding: 12px;
-            border-radius: 5px;
+        
+        .error-banner {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+        
+        .error-banner.show {
+            display: block;
+        }
+        
+        .footer {
             text-align: center;
-            margin-bottom: 15px;
+            padding: 2rem 0;
+            color: #6b7280;
+            font-size: 0.875rem;
         }
-
-        .selector select {
-            padding: 8px 14px;
-            border-radius: 4px;
-            border: 1px solid #888;
-            background: white;
-            cursor: pointer;
-        }
-
-        footer {
-            margin-top: 35px;
-            text-align: center;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 600px) {
-            header h1 { font-size: 1.8rem; }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-wrapper {
+                height: 240px;
+            }
         }
     </style>
 </head>
 <body>
-
-<div class="wrapper">
-
-    <header>
-        <h1>Dashboard de Análisis de Ventas</h1>
-        <p>Sistema BI sobre AWS Cloud</p>
-    </header>
-
-    <div id="loading" class="loading-box">
-        <div class="spinner"></div>
-        <p>Cargando datos...</p>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loader"></div>
+        <div class="loading-text">Cargando datos...</div>
     </div>
 
-    <div id="error" class="error-box" style="display:none;">
-        <strong>Error:</strong> <span id="error-message"></span>
-    </div>
-
-    <div id="charts" class="grid" style="display:none;">
-        
-        <div class="panel">
-            <h2>Ventas Totales por Categoría</h2>
-            <canvas id="salesByCategory"></canvas>
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Dashboard de Análisis de Ventas</h1>
+            <p>Sistema de inteligencia de negocios basado en AWS</p>
         </div>
 
-        <div class="panel">
-            <h2>Margen de Ganancia Promedio</h2>
-            <canvas id="profitMargin"></canvas>
+        <!-- Error Banner -->
+        <div class="error-banner" id="errorBanner">
+            <strong>Error:</strong> <span id="errorMessage"></span>
         </div>
 
-        <div class="panel">
-            <h2>Cantidad Vendida por Región</h2>
-            <canvas id="quantityByRegion"></canvas>
-        </div>
-
-        <div class="panel" style="grid-column: 1 / -1;">
-            <h2>Top 5 Productos Más Vendidos</h2>
-
-            <div class="selector">
-                <label>Región:</label>
-                <select id="regionSelect" onchange="updateTopProducts()">
-                    <option value="all">Global</option>
-                </select>
+        <!-- Charts Grid -->
+        <div class="cards-grid" id="chartsContainer" style="display: none;">
+            <!-- Card 1: Sales by Category -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-blue">💰</div>
+                    <h3 class="card-title">Ventas por Categoría</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartSales"></canvas>
+                </div>
             </div>
 
-            <canvas id="topProducts"></canvas>
+            <!-- Card 2: Profit Margin -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-green">📈</div>
+                    <h3 class="card-title">Margen de Ganancia</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartProfit"></canvas>
+                </div>
+            </div>
+
+            <!-- Card 3: Quantity by Region -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon icon-orange">🌎</div>
+                    <h3 class="card-title">Cantidad por Región</h3>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartQuantity"></canvas>
+                </div>
+            </div>
+
+            <!-- Card 4: Top Products -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="card-icon icon-purple">🏆</div>
+                    <h3 class="card-title">Top 5 Productos Más Vendidos</h3>
+                </div>
+                <div class="region-controls">
+                    <label for="regionFilter">Región:</label>
+                    <select id="regionFilter" onchange="handleRegionChange()">
+                        <option value="all">Todas las regiones</option>
+                    </select>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="chartTopProducts"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Desarrollado con AWS Lambda, DynamoDB y API Gateway</p>
+            <p>Instituto Tecnológico de Celaya - Big Data 2025</p>
         </div>
     </div>
 
-    <footer>
-        Dashboard desarrollado con AWS Lambda · DynamoDB · API Gateway
-        <br>Instituto Tecnológico de Celaya – Big Data
-    </footer>
+    <script>
+        // API Configuration
+        const API_ENDPOINTS = {
+            sales: 'https://8ob9jz0ttd.execute-api.us-east-1.amazonaws.com/default/getSalesByCategory',
+            profit: 'https://mgf6g7e2m0.execute-api.us-east-1.amazonaws.com/default/getProfitMarginByCategory',
+            quantity: 'https://mm779wdd40.execute-api.us-east-1.amazonaws.com/default/getQuantityByRegion',
+            topProducts: 'https://dnqztv96la.execute-api.us-east-1.amazonaws.com/default/getTopProductsByRegion'
+        };
 
-</div>
+        // Chart instances
+        let chartInstances = {
+            sales: null,
+            profit: null,
+            quantity: null,
+            topProducts: null
+        };
 
-<script>
-/* ============================
-   ENDPOINTS DIRECTOS
-============================ */
-const ENDPOINTS = {
-    salesByCategory: "https://8ob9jz0ttd.execute-api.us-east-1.amazonaws.com/default/getSalesByCategory",
-    profitMargin: "https://mgf6g7e2m0.execute-api.us-east-1.amazonaws.com/default/getProfitMarginByCategory",
-    quantityByRegion: "https://mm779wdd40.execute-api.us-east-1.amazonaws.com/default/getQuantityByRegion",
-    topProducts: "https://dnqztv96la.execute-api.us-east-1.amazonaws.com/default/getTopProductsByRegion"
-};
+        // Data cache
+        let cachedTopProductsData = [];
 
-let charts = {};
-let allTopProductsData = [];
+        // Utility functions
+        function showError(message) {
+            const errorBanner = document.getElementById('errorBanner');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorBanner.classList.add('show');
+        }
 
-/* ============================
-   UTILIDADES
-============================ */
-function showError(msg) {
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("error").style.display = "block";
-    document.getElementById("error-message").textContent = msg;
-}
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('chartsContainer').style.display = 'grid';
+        }
 
-function hideLoading() {
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("charts").style.display = "grid";
-}
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
 
-async function fetchData(url) {
-    const res = await fetch(url);
+        function formatNumber(value) {
+            return new Intl.NumberFormat('es-MX').format(Math.round(value));
+        }
 
-    if (!res.ok) {
-        throw new Error(`Error HTTP ${res.status}`);
-    }
-
-    return await res.json();
-}
-
-/* ============================
-   GRÁFICO 1 - VENTAS POR CATEGORÍA
-============================ */
-async function loadAndCreateSalesByCategoryChart() {
-    const data = await fetchData(ENDPOINTS.salesByCategory);
-
-    const categories = data.map(i => i.category);
-    const sales = data.map(i => i.total_sales);
-
-    charts.salesByCategory = new Chart(
-        document.getElementById("salesByCategory"),
-        {
-            type: "bar",
-            data: {
-                labels: categories,
-                datasets: [{
-                    label: "Ventas",
-                    data: sales,
-                    backgroundColor: "rgba(102,126,234,0.8)"
-                }]
+        // API call wrapper
+        async function fetchData(url) {
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                throw error;
             }
         }
-    );
-}
 
-/* ============================
-   GRÁFICO 2 - MARGEN
-============================ */
-async function loadAndCreateProfitMarginChart() {
-    const data = await fetchData(ENDPOINTS.profitMargin);
-
-    const categories = data.map(i => i.category);
-    const margins = data.map(i => i.avg_profit_margin_percent);
-
-    charts.profitMargin = new Chart(
-        document.getElementById("profitMargin"),
-        {
-            type: "bar",
-            data: {
-                labels: categories,
-                datasets: [{
-                    label: "Margen (%)",
-                    data: margins,
-                    backgroundColor: "rgba(75,192,192,0.8)"
-                }]
+        // Chart 1: Sales by Category
+        async function loadSalesChart() {
+            try {
+                const data = await fetchData(API_ENDPOINTS.sales);
+                
+                const ctx = document.getElementById('chartSales').getContext('2d');
+                
+                chartInstances.sales = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.category),
+                        datasets: [{
+                            label: 'Ventas',
+                            data: data.map(item => item.total_sales),
+                            backgroundColor: 'rgba(37, 99, 235, 0.8)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: context => formatCurrency(context.parsed.y)
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => formatCurrency(value)
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                throw new Error('No se pudieron cargar las ventas por categoría');
             }
         }
-    );
-}
 
-/* ============================
-   GRÁFICO 3 - CANTIDAD POR REGIÓN
-============================ */
-async function loadAndCreateQuantityByRegionChart() {
-    const data = await fetchData(ENDPOINTS.quantityByRegion);
-
-    const regions = data.map(i => i.region);
-    const quantities = data.map(i => i.total_quantity);
-
-    charts.quantityByRegion = new Chart(
-        document.getElementById("quantityByRegion"),
-        {
-            type: "bar",
-            data: {
-                labels: regions,
-                datasets: [{
-                    label: "Cantidad",
-                    data: quantities,
-                    backgroundColor: "rgba(255,159,64,0.8)"
-                }]
-            },
-            options: { indexAxis: "y" }
-        }
-    );
-}
-
-/* ============================
-   TOP PRODUCTS
-============================ */
-async function loadTopProductsData() {
-    allTopProductsData = await fetchData(ENDPOINTS.topProducts);
-
-    // Extraer regiones únicas
-    const regiones = [...new Set(allTopProductsData.map(i => i.region))];
-
-    const selector = document.getElementById("regionSelect");
-    regiones.forEach(r => {
-        const op = document.createElement("option");
-        op.value = r;
-        op.textContent = r;
-        selector.appendChild(op);
-    });
-
-    createTopProductsChart(allTopProductsData);
-}
-
-function createTopProductsChart(lista) {
-    if (charts.topProducts) charts.topProducts.destroy();
-
-    const top = lista.slice(0, 5);
-
-    charts.topProducts = new Chart(
-        document.getElementById("topProducts"),
-        {
-            type: "bar",
-            data: {
-                labels: top.map(i => i.product_name),
-                datasets: [{
-                    label: "Cantidad vendida",
-                    data: top.map(i => i.total_quantity),
-                    backgroundColor: "rgba(54,162,235,0.8)"
-                }]
+        // Chart 2: Profit Margin
+        async function loadProfitChart() {
+            try {
+                const data = await fetchData(API_ENDPOINTS.profit);
+                
+                const ctx = document.getElementById('chartProfit').getContext('2d');
+                
+                chartInstances.profit = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.category),
+                        datasets: [{
+                            label: 'Margen',
+                            data: data.map(item => item.avg_profit_margin_percent),
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: context => `${context.parsed.y.toFixed(2)}%`
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => `${value}%`
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                throw new Error('No se pudo cargar el margen de ganancia');
             }
         }
-    );
-}
 
-function updateTopProducts() {
-    const region = document.getElementById("regionSelect").value;
+        // Chart 3: Quantity by Region
+        async function loadQuantityChart() {
+            try {
+                const data = await fetchData(API_ENDPOINTS.quantity);
+                
+                const ctx = document.getElementById('chartQuantity').getContext('2d');
+                
+                chartInstances.quantity = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.region),
+                        datasets: [{
+                            label: 'Cantidad',
+                            data: data.map(item => item.total_quantity),
+                            backgroundColor: 'rgba(245, 158, 11, 0.8)',
+                            borderColor: 'rgba(245, 158, 11, 1)',
+                            borderWidth: 1,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: context => `${formatNumber(context.parsed.x)} unidades`
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => formatNumber(value)
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                throw new Error('No se pudo cargar la cantidad por región');
+            }
+        }
 
-    const datosFiltrados =
-        region === "all"
-            ? allTopProductsData
-            : allTopProductsData.filter(i => i.region === region);
+        // Chart 4: Top Products
+        async function loadTopProductsChart() {
+            try {
+                const data = await fetchData(API_ENDPOINTS.topProducts);
+                cachedTopProductsData = data;
+                
+                // Populate region selector
+                const regions = [...new Set(data.map(item => item.region))].sort();
+                const select = document.getElementById('regionFilter');
+                
+                regions.forEach(region => {
+                    if (region !== 'ALL') {
+                        const option = document.createElement('option');
+                        option.value = region;
+                        option.textContent = region;
+                        select.appendChild(option);
+                    }
+                });
+                
+                // Initial render
+                renderTopProductsChart(data.slice(0, 5));
+            } catch (error) {
+                throw new Error('No se pudieron cargar los productos más vendidos');
+            }
+        }
 
-    createTopProductsChart(datosFiltrados);
-}
+        function renderTopProductsChart(data) {
+            const ctx = document.getElementById('chartTopProducts').getContext('2d');
+            
+            if (chartInstances.topProducts) {
+                chartInstances.topProducts.destroy();
+            }
+            
+            const colors = [
+                'rgba(239, 68, 68, 0.8)',
+                'rgba(59, 130, 246, 0.8)',
+                'rgba(234, 179, 8, 0.8)',
+                'rgba(34, 197, 94, 0.8)',
+                'rgba(168, 85, 247, 0.8)'
+            ];
+            
+            chartInstances.topProducts = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(item => item.product_name),
+                    datasets: [{
+                        label: 'Cantidad vendida',
+                        data: data.map(item => item.total_quantity),
+                        backgroundColor: colors,
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: context => `${formatNumber(context.parsed.y)} unidades`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatNumber(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
-/* ============================
-   INIT
-============================ */
-async function initDashboard() {
-    try {
-        await Promise.all([
-            loadAndCreateSalesByCategoryChart(),
-            loadAndCreateProfitMarginChart(),
-            loadAndCreateQuantityByRegionChart(),
-            loadTopProductsData()
-        ]);
+        async function handleRegionChange() {
+            const region = document.getElementById('regionFilter').value;
+            
+            try {
+                if (region === 'all') {
+                    const data = await fetchData(API_ENDPOINTS.topProducts);
+                    renderTopProductsChart(data.slice(0, 5));
+                } else {
+                    const url = `${API_ENDPOINTS.topProducts}?region=${region}`;
+                    const data = await fetchData(url);
+                    renderTopProductsChart(data);
+                }
+            } catch (error) {
+                console.error('Error updating chart:', error);
+                showError('Error al actualizar el gráfico de productos');
+            }
+        }
 
-        hideLoading();
-    } catch (e) {
-        showError(e.message);
-    }
-}
+        // Initialize dashboard
+        async function initDashboard() {
+            try {
+                await Promise.all([
+                    loadSalesChart(),
+                    loadProfitChart(),
+                    loadQuantityChart(),
+                    loadTopProductsChart()
+                ]);
+                
+                hideLoading();
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                hideLoading();
+                showError(error.message || 'Error al cargar el dashboard. Por favor, recarga la página.');
+            }
+        }
 
-window.onload = initDashboard;
-
-</script>
+        // Start when page loads
+        window.addEventListener('load', initDashboard);
+    </script>
 </body>
 </html>
