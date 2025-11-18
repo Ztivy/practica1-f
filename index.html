@@ -289,7 +289,7 @@
                 <div class="region-controls">
                     <label for="regionFilter">Región:</label>
                     <select id="regionFilter" onchange="handleRegionChange()">
-                        <option value="all">Todas las regiones</option>
+                        <option value="">Seleccione una región...</option>
                     </select>
                 </div>
                 <div class="chart-wrapper">
@@ -323,7 +323,7 @@
         };
 
         // Data cache
-        let cachedTopProductsData = [];
+        let cachedTopProductsData = {};
 
         // Utility functions
         function showError(message) {
@@ -354,16 +354,22 @@
         // API call wrapper
         async function fetchData(url) {
             try {
+                console.log('Fetching:', url);
                 const response = await fetch(url);
                 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
-                    throw new Error(`Error HTTP: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
                 }
                 
                 const data = await response.json();
+                console.log('Data received:', data);
                 return data;
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error fetching data from', url, ':', error);
                 throw error;
             }
         }
@@ -508,11 +514,10 @@
         }
 
         // Chart 4: Top Products
-                // Chart 4: Top Products
         async function loadTopProductsChart() {
             try {
                 const data = await fetchData(API_ENDPOINTS.topProducts);
-                console.log('Top Products Data:', data); // Debug
+                console.log('Top Products Data:', data);
                 
                 if (!data || !data.regions) {
                     throw new Error('No hay datos disponibles');
@@ -524,6 +529,9 @@
                 const regions = Object.keys(data.regions).sort();
                 const select = document.getElementById('regionFilter');
                 
+                // Clear existing options except the first one
+                select.innerHTML = '<option value="">Seleccione una región...</option>';
+                
                 regions.forEach(region => {
                     const option = document.createElement('option');
                     option.value = region;
@@ -532,16 +540,19 @@
                 });
                 
                 // Initial render - show first region's data
-                const firstRegion = regions[0];
-                const firstRegionData = data.regions[firstRegion];
-                renderTopProductsChart(firstRegionData.products, firstRegion, firstRegionData);
+                if (regions.length > 0) {
+                    const firstRegion = regions[0];
+                    const firstRegionData = data.regions[firstRegion];
+                    select.value = firstRegion;
+                    renderTopProductsChart(firstRegionData.products, firstRegion, firstRegionData);
+                }
             } catch (error) {
                 console.error('Error in loadTopProductsChart:', error);
                 throw new Error('No se pudieron cargar los productos más vendidos: ' + error.message);
             }
         }
 
-        function renderTopProductsChart(data) {
+        function renderTopProductsChart(products, regionName, regionData) {
             const ctx = document.getElementById('chartTopProducts').getContext('2d');
             
             if (chartInstances.topProducts) {
@@ -559,10 +570,10 @@
             chartInstances.topProducts = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: data.map(item => item.product_name),
+                    labels: products.map(item => item.product_name),
                     datasets: [{
-                        label: 'Cantidad vendida',
-                        data: data.map(item => item.total_quantity),
+                        label: 'Ventas',
+                        data: products.map(item => item.total_sales),
                         backgroundColor: colors,
                         borderWidth: 1,
                         borderRadius: 6
@@ -573,9 +584,23 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
+                        title: {
+                            display: true,
+                            text: `${regionName} - Total: ${formatCurrency(regionData.total_sales_region)} | Promedio Top 5: ${formatCurrency(regionData.average_sales_top5)}`,
+                            font: { size: 13, weight: '500' },
+                            color: '#374151',
+                            padding: { bottom: 15 }
+                        },
                         tooltip: {
                             callbacks: {
-                                label: context => `${formatNumber(context.parsed.y)} unidades`
+                                label: context => {
+                                    const product = products[context.dataIndex];
+                                    return [
+                                        `Ventas: ${formatCurrency(context.parsed.y)}`,
+                                        `Porcentaje: ${product.percentage_of_region}%`,
+                                        `Rank: #${product.rank}`
+                                    ];
+                                }
                             }
                         }
                     },
@@ -583,7 +608,7 @@
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: value => formatNumber(value)
+                                callback: value => formatCurrency(value)
                             }
                         }
                     }
@@ -594,14 +619,23 @@
         async function handleRegionChange() {
             const region = document.getElementById('regionFilter').value;
             
+            if (!region) return;
+            
             try {
-                if (region === 'all') {
-                    const data = await fetchData(API_ENDPOINTS.topProducts);
-                    renderTopProductsChart(data.slice(0, 5));
+                if (cachedTopProductsData[region]) {
+                    // Use cached data
+                    const regionData = cachedTopProductsData[region];
+                    renderTopProductsChart(regionData.products, region, regionData);
                 } else {
+                    // Fetch from API
                     const url = `${API_ENDPOINTS.topProducts}?region=${region}`;
                     const data = await fetchData(url);
-                    renderTopProductsChart(data);
+                    
+                    if (data && data.regions && data.regions[region]) {
+                        const regionData = data.regions[region];
+                        cachedTopProductsData[region] = regionData;
+                        renderTopProductsChart(regionData.products, region, regionData);
+                    }
                 }
             } catch (error) {
                 console.error('Error updating chart:', error);
