@@ -192,15 +192,12 @@
         // CONFIGURACIÓN DE LA API
         // ==========================================
         // IMPORTANTE: Reemplaza esta URL con tu Invoke URL de API Gateway
-        const API_BASE_URL = 'https://TU-API-ID.execute-api.REGION.amazonaws.com/prod';
-        
-        // Endpoints individuales
         const ENDPOINTS = {
-            salesByCategory: `${API_BASE_URL}/sales-by-category`,
-            profitMargin: `${API_BASE_URL}/profit-margin-by-category`,
-            quantityByRegion: `${API_BASE_URL}/quantity-by-region`,
-            topProducts: `${API_BASE_URL}/top-products-by-region`
-        };
+    salesByCategory: 'https://8ob9jz0ttd.execute-api.us-east-1.amazonaws.com/default/getSalesByCategory',
+    profitMargin: 'https://mgf6g7e2m0.execute-api.us-east-1.amazonaws.com/default/getProfitMarginByCategory',
+    quantityByRegion: 'https://mm779wdd40.execute-api.us-east-1.amazonaws.com/default/getQuantityByRegion',
+    topProducts: 'https://dnqztv96la.execute-api.us-east-1.amazonaws.com/default/getTopProductsByRegion'
+   };
         
         // ==========================================
         // VARIABLES GLOBALES
