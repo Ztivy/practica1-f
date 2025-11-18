@@ -508,28 +508,36 @@
         }
 
         // Chart 4: Top Products
+                // Chart 4: Top Products
         async function loadTopProductsChart() {
             try {
                 const data = await fetchData(API_ENDPOINTS.topProducts);
-                cachedTopProductsData = data;
+                console.log('Top Products Data:', data); // Debug
                 
-                // Populate region selector
-                const regions = [...new Set(data.map(item => item.region))].sort();
+                if (!data || !data.regions) {
+                    throw new Error('No hay datos disponibles');
+                }
+                
+                cachedTopProductsData = data.regions;
+                
+                // Populate region selector with available regions
+                const regions = Object.keys(data.regions).sort();
                 const select = document.getElementById('regionFilter');
                 
                 regions.forEach(region => {
-                    if (region !== 'ALL') {
-                        const option = document.createElement('option');
-                        option.value = region;
-                        option.textContent = region;
-                        select.appendChild(option);
-                    }
+                    const option = document.createElement('option');
+                    option.value = region;
+                    option.textContent = region;
+                    select.appendChild(option);
                 });
                 
-                // Initial render
-                renderTopProductsChart(data.slice(0, 5));
+                // Initial render - show first region's data
+                const firstRegion = regions[0];
+                const firstRegionData = data.regions[firstRegion];
+                renderTopProductsChart(firstRegionData.products, firstRegion, firstRegionData);
             } catch (error) {
-                throw new Error('No se pudieron cargar los productos más vendidos');
+                console.error('Error in loadTopProductsChart:', error);
+                throw new Error('No se pudieron cargar los productos más vendidos: ' + error.message);
             }
         }
 
